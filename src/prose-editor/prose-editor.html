@@ -10,7 +10,7 @@
                     height: 100%;
                     width: 100%;
                     font-family: 'Roboto', sans-serif;
-                    font-size: 16px;
+                    font-size: 13px;
                     min-height: 100vw;
                 }
 
@@ -33,6 +33,9 @@
                     min-height: 801px;
                     transition: height .2s ease-in;
                     margin-top: 10px;
+
+                    font-family: 'Roboto', sans-serif;
+                    font-size: 11px;
                 }
 
                 h1 {
@@ -129,13 +132,14 @@
 
                 .toolbar {
                     width: 100%;
-                    height: 48px;
+                    height: 64px;
                     overflow: hidden;
+                    box-shadow: 0px 3px 8px -1px rgba(0,0,0,0.25);
                 }
 
                 .scroll-area {
                     width: 100%;
-                    height: calc(100% - 96px);
+                    height: calc(100% - 112px);
                     overflow: auto;
                     position: relative;
                 }
@@ -147,6 +151,11 @@
                     overflow: hidden;
                     padding-top: 5px;
                     padding-bottom: 5px;
+                }
+
+                paper-icon-button[active] {
+                    background: #bbb;
+                    border-radius: 20px;
                 }
 
                 paper-input {
@@ -161,7 +170,6 @@
         <div class="toolbar">
             <paper-icon-button icon="icons:undo" on-tap="doUndo"></paper-icon-button>
             <paper-icon-button icon="icons:redo" on-tap="doRedo"></paper-icon-button>
-            <paper-icon-button icon="editor:format-paint"></paper-icon-button>
 
             <paper-dropdown-menu label="Style" value="[[currentHeading]]" on-selected-item-label-changed="doHeading" on-tap="doHeadingMenu" vertical-offset="64" horizontal-align="left">
                 <paper-listbox slot="dropdown-content" class="dropdown-content">
@@ -236,12 +244,12 @@
                 </paper-listbox>
             </paper-dropdown-menu>
 
-            <paper-icon-button icon="editor:format-bold" on-tap="toggleBold"></paper-icon-button>
-            <paper-icon-button icon="editor:format-italic" on-tap="toggleItalic"></paper-icon-button>
-            <paper-icon-button icon="editor:format-underlined" on-tap="toggleUnderlined"></paper-icon-button>
+            <paper-icon-button icon="editor:format-bold" active="[[isStrong]]" on-tap="toggleBold"></paper-icon-button>
+            <paper-icon-button icon="editor:format-italic" active="[[isEm]]" on-tap="toggleItalic"></paper-icon-button>
+            <paper-icon-button icon="editor:format-underlined" active="[[isUnderlined]]" on-tap="toggleUnderlined"></paper-icon-button>
             <paper-icon-button icon="editor:format-clear" on-tap="doClear"></paper-icon-button>
-            <color-picker icon="editor:format-color-text" on-color-picker-selected="doColor"></color-picker>
-            <color-picker icon="editor:format-color-fill" on-color-picker-selected="doFillColor"></color-picker>
+            <color-picker icon="editor:format-color-text" color="[[currentColor]]" on-color-picker-selected="doColor"></color-picker>
+            <color-picker icon="editor:format-color-fill" color="[[currentBgColor]]" on-color-picker-selected="doFillColor"></color-picker>
 
             <paper-icon-button icon="editor:format-align-left"></paper-icon-button>
             <paper-icon-button icon="editor:format-align-center"></paper-icon-button>

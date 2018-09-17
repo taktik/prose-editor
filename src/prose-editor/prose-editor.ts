@@ -22,7 +22,7 @@ import {OrderedMap} from "orderedmap";
 import {baseKeymap, toggleMark, setBlockType} from "prosemirror-commands";
 import {Plugin} from "prosemirror-state"
 import {ReplaceStep} from "prosemirror-transform";
-import {history,undo, redo} from "prosemirror-history";
+import {history, undo, redo} from "prosemirror-history";
 import {underline} from "chalk";
 
 /**
@@ -37,11 +37,11 @@ export class ProseEditor extends Polymer.Element {
   pageHeight: number = 846
 
   @property({type: Number, observer: '_zoomChanged'})
-  zoomLevel= 100
+  zoomLevel = 100
 
   _zoomChanged() {
     if (this.$.container) {
-      this.$.container.style.transform = "translateX(-50%)  translateY(" + (this.zoomLevel-100)/2 + "%) scale(" + (this.zoomLevel / 100) + ")"
+      this.$.container.style.transform = "translateX(-50%)  translateY(" + (this.zoomLevel - 100) / 2 + "%) scale(" + (this.zoomLevel / 100) + ")"
     }
   }
 
@@ -89,7 +89,7 @@ export class ProseEditor extends Polymer.Element {
         parseDOM: [{tag: "u"}, {
           style: 'text-decoration',
           getAttrs(value) {
-            return {underline: value }
+            return {underline: value}
           }
         }],
         toDOM(mark) {
@@ -216,29 +216,44 @@ export class ProseEditor extends Polymer.Element {
     const proseEditor = this
 
     let selectionTrackingPlugin = new Plugin({
-      view (view) {
+      view(view) {
         return {
           update: function (view, prevState) {
             var state = view.state;
 
             if (!(prevState && prevState.doc.eq(state.doc) && prevState.selection.eq(state.selection))) {
-              let {$from} = state.selection, index = $from.index()
+              let {$anchor, $cursor} = state.selection as TextSelection, index = $anchor.pos
               let node = state.doc.nodeAt(index)
 
-              if (node) {
-                if (node.type.name === 'heading') { proseEditor.set('currentHeading', 'Heading ' + node.attrs.level) } else { proseEditor.set('currentHeading', 'Normal') }
-                const fontMark = node.marks.find(m => m.type === proseEditor.editorSchema.marks.font)
-                if (fontMark) { proseEditor.set('currentFont', fontMark.attrs.font) } else { proseEditor.set('currentFont', 'Roboto') }
-                const sizeMark = node.marks.find(m => m.type === proseEditor.editorSchema.marks.size)
-                if (sizeMark) { proseEditor.set('currentSize', sizeMark.attrs.size) } else { proseEditor.set('currentSize', '14 px') }
-
+              if (!node && !$cursor) {
+                proseEditor.set('currentHeading', null)
+                proseEditor.set('currentFont', null)
+                proseEditor.set('currentSize', null)
                 return
               }
-            }
 
-            proseEditor.set('currentHeading', 'Style')
-            proseEditor.set('currentFont', 'Font')
-            proseEditor.set('currentSize', 'Size')
+              if (node && node.type.name === 'heading') {
+                proseEditor.set('currentHeading', 'Heading ' + node.attrs.level)
+              } else {
+                proseEditor.set('currentHeading', 'Normal')
+              }
+              const marks = (node && node.marks || $cursor && $cursor.marks() || [])
+              const fontMark = marks.find(m => m.type === proseEditor.editorSchema.marks.font)
+              const sizeMark = marks.find(m => m.type === proseEditor.editorSchema.marks.size)
+              const strongMark = marks.find(m => m.type === proseEditor.editorSchema.marks.strong)
+              const emMark = marks.find(m => m.type === proseEditor.editorSchema.marks.em)
+              const underlinedMark = marks.find(m => m.type === proseEditor.editorSchema.marks.underlined)
+              const colorMark = marks.find(m => m.type === proseEditor.editorSchema.marks.color)
+              const bgcolorMark = marks.find(m => m.type === proseEditor.editorSchema.marks.bgcolor)
+
+              proseEditor.set('currentFont', fontMark && fontMark.attrs.font || 'Roboto')
+              proseEditor.set('currentSize', sizeMark && sizeMark.attrs.size || '11px')
+              proseEditor.set('isStrong', !!strongMark )
+              proseEditor.set('isEm', !!emMark )
+              proseEditor.set('isUnderlined', !!underlinedMark )
+              proseEditor.set('currentColor', colorMark && colorMark.attrs.color || '#000000' )
+              proseEditor.set('currentBgColor', bgcolorMark && bgcolorMark.attrs.color || '#000000' )
+            }
           }
         }
       }
@@ -375,7 +390,7 @@ export class ProseEditor extends Polymer.Element {
     e.stopPropagation()
     e.preventDefault()
     if (this.editorView) {
-      this.addMark(this.editorSchema.marks.color,{color: e.detail.color})(this.editorView.state, this.editorView.dispatch)
+      this.addMark(this.editorSchema.marks.color, {color: e.detail.color})(this.editorView.state, this.editorView.dispatch)
       this.editorView.focus()
     }
   }
@@ -384,7 +399,7 @@ export class ProseEditor extends Polymer.Element {
     e.stopPropagation()
     e.preventDefault()
     if (this.editorView) {
-      this.addMark(this.editorSchema.marks.bgcolor,{color: e.detail.color})(this.editorView.state, this.editorView.dispatch)
+      this.addMark(this.editorSchema.marks.bgcolor, {color: e.detail.color})(this.editorView.state, this.editorView.dispatch)
       this.editorView.focus()
     }
   }
@@ -393,7 +408,7 @@ export class ProseEditor extends Polymer.Element {
     e.stopPropagation()
     e.preventDefault()
     if (this.editorView && e.detail && e.detail.value && e.detail.value.length) {
-      this.addMark(this.editorSchema.marks.font,{font: e.detail.value})(this.editorView.state, this.editorView.dispatch)
+      this.addMark(this.editorSchema.marks.font, {font: e.detail.value})(this.editorView.state, this.editorView.dispatch)
       this.editorView.focus()
     }
   }
@@ -406,7 +421,7 @@ export class ProseEditor extends Polymer.Element {
     e.stopPropagation()
     e.preventDefault()
     if (this.editorView && e.detail && e.detail.value && e.detail.value.length) {
-      this.addMark(this.editorSchema.marks.size,{size: e.detail.value.replace(/ /,'')})(this.editorView.state, this.editorView.dispatch)
+      this.addMark(this.editorSchema.marks.size, {size: e.detail.value.replace(/ /, '')})(this.editorView.state, this.editorView.dispatch)
       this.editorView.focus()
     }
   }
@@ -419,7 +434,7 @@ export class ProseEditor extends Polymer.Element {
     e.stopPropagation()
     e.preventDefault()
     if (this.editorView && e.detail && e.detail.value && e.detail.value.length) {
-      setBlockType(this.editorSchema.nodes.heading,{level: parseInt(e.detail.value.replace(/.+ ([0-9]+)/,'$1'))})(this.editorView.state, this.editorView.dispatch)
+      setBlockType(this.editorSchema.nodes.heading, {level: parseInt(e.detail.value.replace(/.+ ([0-9]+)/, '$1'))})(this.editorView.state, this.editorView.dispatch)
       this.editorView.focus()
     }
   }

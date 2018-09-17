@@ -54,7 +54,7 @@ export class ColorPicker extends Polymer.mixinBehaviors([], Polymer.Element) {
   }
 
   _colorChanged() {
-    this.$.iconButton.style.color = chroma.css(this.color!!).darken().css()
+    this.$.iconButton.style.color = this.color ? chroma(this.color).darken().css() : "#000"
   }
 
 }
