@@ -24,6 +24,7 @@ export class ColorPicker extends Polymer.mixinBehaviors([], Polymer.Element) {
   @property({type: Number})
   columnCount = 18
 
+
   constructor() {
     super()
   }

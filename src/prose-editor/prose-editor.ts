@@ -10,19 +10,19 @@ import "../../bower_components/neon-animation/web-animations"
 
 import "../utils/color-picker.ts"
 
-import {customElement, property} from 'taktik-polymer-typescript';
 import './prose-editor.html'
+
+import {customElement, property} from 'taktik-polymer-typescript';
 import {keymap} from 'prosemirror-keymap'
 import {EditorState, TextSelection, Transaction} from 'prosemirror-state'
-import {Decoration, DecorationSet, EditorView, NodeView} from 'prosemirror-view'
-import {Schema, DOMParser, NodeSpec, Node, Mark, MarkType, MarkSpec} from 'prosemirror-model'
+import {EditorView} from 'prosemirror-view'
+import {Schema, DOMParser, NodeSpec, Node, MarkType, MarkSpec} from 'prosemirror-model'
 import {schema} from 'prosemirror-schema-basic'
 import {OrderedMap} from "orderedmap";
-import {baseKeymap, toggleMark} from "prosemirror-commands";
-import {Plugin, PluginSpec, StateField, Selection} from "prosemirror-state"
-import Any = jasmine.Any;
-import Timer = NodeJS.Timer;
+import {baseKeymap, toggleMark, setBlockType} from "prosemirror-commands";
+import {Plugin} from "prosemirror-state"
 import {ReplaceStep} from "prosemirror-transform";
+import {history,undo, redo} from "prosemirror-history";
 import {underline} from "chalk";
 
 /**
@@ -34,7 +34,16 @@ export class ProseEditor extends Polymer.Element {
   $: { editor: HTMLElement, content: HTMLElement } | any
 
   @property({type: Number})
-  pageHeight: number = 286
+  pageHeight: number = 846
+
+  @property({type: Number, observer: '_zoomChanged'})
+  zoomLevel= 100
+
+  _zoomChanged() {
+    if (this.$.container) {
+      this.$.container.style.transform = "translateX(-50%)  translateY(" + (this.zoomLevel-100)/2 + "%) scale(" + (this.zoomLevel / 100) + ")"
+    }
+  }
 
   docNodeSpec: NodeSpec = {
     content: "page+"
@@ -46,7 +55,7 @@ export class ProseEditor extends Polymer.Element {
     attrs: {
       id: {default: 0}
     },
-    content: "paragraph+",
+    content: "block+",
 
     toDOM: (node: any) => ["div", {class: "page", id: "page_" + node.attrs.id}, 0],
     parseDOM: [{
@@ -135,6 +144,22 @@ export class ProseEditor extends Polymer.Element {
           let {font} = mark.attrs
           return ['span', {style: `font-family: ${font}`}, 0]
         }
+      }).addToEnd("size", {
+        attrs: {
+          size: {default: ''}
+        },
+        parseDOM: [
+          {
+            style: 'font-size',
+            getAttrs(value) {
+              return {size: value}
+            }
+          }
+        ],
+        toDOM(mark) {
+          let {size} = mark.attrs
+          return ['span', {style: `font-size: ${size}`}, 0]
+        }
       })
   })
 
@@ -189,6 +214,35 @@ export class ProseEditor extends Polymer.Element {
     super.ready()
 
     const proseEditor = this
+
+    let selectionTrackingPlugin = new Plugin({
+      view (view) {
+        return {
+          update: function (view, prevState) {
+            var state = view.state;
+
+            if (!(prevState && prevState.doc.eq(state.doc) && prevState.selection.eq(state.selection))) {
+              let {$from} = state.selection, index = $from.index()
+              let node = state.doc.nodeAt(index)
+
+              if (node) {
+                if (node.type.name === 'heading') { proseEditor.set('currentHeading', 'Heading ' + node.attrs.level) } else { proseEditor.set('currentHeading', 'Normal') }
+                const fontMark = node.marks.find(m => m.type === proseEditor.editorSchema.marks.font)
+                if (fontMark) { proseEditor.set('currentFont', fontMark.attrs.font) } else { proseEditor.set('currentFont', 'Roboto') }
+                const sizeMark = node.marks.find(m => m.type === proseEditor.editorSchema.marks.size)
+                if (sizeMark) { proseEditor.set('currentSize', sizeMark.attrs.size) } else { proseEditor.set('currentSize', '14 px') }
+
+                return
+              }
+            }
+
+            proseEditor.set('currentHeading', 'Style')
+            proseEditor.set('currentFont', 'Font')
+            proseEditor.set('currentSize', 'Size')
+          }
+        }
+      }
+    });
 
     let paginationPlugin = new Plugin({
       appendTransaction(tr, oldState, newState) {
@@ -252,12 +306,34 @@ export class ProseEditor extends Polymer.Element {
             }
           }),
           keymap(baseKeymap),
+          history(),
+          selectionTrackingPlugin,
           paginationPlugin,
           paragraphPlugin
         ]
       })
     })
   }
+
+  doUndo(e: CustomEvent) {
+    e.stopPropagation()
+    e.preventDefault()
+    if (this.editorView) {
+      undo(this.editorView.state, this.editorView.dispatch)
+      this.editorView.focus()
+    }
+  }
+
+
+  doRedo(e: CustomEvent) {
+    e.stopPropagation()
+    e.preventDefault()
+    if (this.editorView) {
+      redo(this.editorView.state, this.editorView.dispatch)
+      this.editorView.focus()
+    }
+  }
+
 
   toggleBold(e: Event) {
     e.stopPropagation()
@@ -323,6 +399,32 @@ export class ProseEditor extends Polymer.Element {
   }
 
   doFontMenu(e: CustomEvent) {
+    e.preventDefault()
+  }
+
+  doSize(e: CustomEvent) {
+    e.stopPropagation()
+    e.preventDefault()
+    if (this.editorView && e.detail && e.detail.value && e.detail.value.length) {
+      this.addMark(this.editorSchema.marks.size,{size: e.detail.value.replace(/ /,'')})(this.editorView.state, this.editorView.dispatch)
+      this.editorView.focus()
+    }
+  }
+
+  doSizeMenu(e: CustomEvent) {
+    e.preventDefault()
+  }
+
+  doHeading(e: CustomEvent) {
+    e.stopPropagation()
+    e.preventDefault()
+    if (this.editorView && e.detail && e.detail.value && e.detail.value.length) {
+      setBlockType(this.editorSchema.nodes.heading,{level: parseInt(e.detail.value.replace(/.+ ([0-9]+)/,'$1'))})(this.editorView.state, this.editorView.dispatch)
+      this.editorView.focus()
+    }
+  }
+
+  doHeadingMenu(e: CustomEvent) {
     e.preventDefault()
   }
 

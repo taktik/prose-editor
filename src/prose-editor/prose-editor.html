@@ -22,27 +22,44 @@
 
                 .page {
                     padding: 20px;
+                    outline: 0;
                     background: #fefefe;
                     border-radius: 3px;
                     box-shadow: 0 3px 3px 0 rgba(0, 0, 0, 0.14),
                     0 3px 4px 0 rgba(0, 0, 0, 0.12),
                     0 1px 8px 0 rgba(0, 0, 0, 0.20);
 
-                    width: 591px;
-                    min-height: 241px;
+                    width: 555px;
+                    min-height: 801px;
                     transition: height .2s ease-in;
                     margin-top: 10px;
                 }
 
                 h1 {
+                    font-size: 1.8em;
+                    font-weight: bold;
+                }
+
+                h2 {
                     font-size: 1.5em;
                     font-weight: bold;
-                    color: #fefefe;
-                    background: #00d6b2;
-                    padding: 1em;
-                    margin-top: 0;
-                    border-radius: 3px 3px 0 0;
-                    text-align: center;
+                }
+
+                h3 {
+                    font-size: 1.3em;
+                    font-weight: bold;
+                }
+
+                h4 {
+                    font-size: 1em;
+                    font-weight: bold;
+                    text-decoration: underline;
+                }
+
+
+                h5 {
+                    font-size: 1em;
+                    text-decoration: underline;
                 }
 
                 #editor {
@@ -110,25 +127,54 @@
                     top: -8px;
                 }
 
+                .toolbar {
+                    width: 100%;
+                    height: 48px;
+                    overflow: hidden;
+                }
+
+                .scroll-area {
+                    width: 100%;
+                    height: calc(100% - 96px);
+                    overflow: auto;
+                    position: relative;
+                }
+
+                .status-bar {
+                    width: 100%;
+                    height: 38px;
+                    bottom: 0;
+                    overflow: hidden;
+                    padding-top: 5px;
+                    padding-bottom: 5px;
+                }
+
+                paper-input {
+                    top:-12px;
+                    width:120px;
+                    position: relative;
+                }
+
             </style>
         </custom-style>
 
-        <div>
-            <paper-icon-button icon="icons:undo"></paper-icon-button>
-            <paper-icon-button icon="icons:redo"></paper-icon-button>
+        <div class="toolbar">
+            <paper-icon-button icon="icons:undo" on-tap="doUndo"></paper-icon-button>
+            <paper-icon-button icon="icons:redo" on-tap="doRedo"></paper-icon-button>
             <paper-icon-button icon="editor:format-paint"></paper-icon-button>
 
-            <paper-dropdown-menu label="Style">
+            <paper-dropdown-menu label="Style" value="[[currentHeading]]" on-selected-item-label-changed="doHeading" on-tap="doHeadingMenu" vertical-offset="64" horizontal-align="left">
                 <paper-listbox slot="dropdown-content" class="dropdown-content">
                     <paper-item>Normal</paper-item>
                     <paper-item>Heading 1</paper-item>
+                    <paper-item>Heading 2</paper-item>
                     <paper-item>Heading 2</paper-item>
                     <paper-item>Heading 4</paper-item>
                     <paper-item>Heading 5</paper-item>
                 </paper-listbox>
             </paper-dropdown-menu>
 
-            <paper-dropdown-menu label="Font" on-selected-item-label-changed="doFont" on-tap="doFontMenu" vertical-offset="64" horizontal-align="left">
+            <paper-dropdown-menu label="Font" value="[[currentFont]]" on-selected-item-label-changed="doFont" on-tap="doFontMenu" vertical-offset="64" horizontal-align="left">
                 <paper-listbox slot="dropdown-content" class="dropdown-content" style="min-width: 320px;">
                     <paper-item><span style="font-family:'Alegreya';">Alegreya</span></paper-item>
                     <paper-item><span style="font-family:'Barlow';">Barlow</span></paper-item>
@@ -172,9 +218,12 @@
                 </paper-listbox>
             </paper-dropdown-menu>
 
-            <paper-dropdown-menu label="Size">
+            <paper-dropdown-menu label="Size" value="[[currentSize]]" on-selected-item-label-changed="doSize" on-tap="doSizeMenu" vertical-offset="64" horizontal-align="left">
                 <paper-listbox slot="dropdown-content" class="dropdown-content">
-                    <paper-item><span style="font-family:'9 px';">9 px</span></paper-item>
+                    <paper-item>6 px</paper-item>
+                    <paper-item>7 px</paper-item>
+                    <paper-item>8 px</paper-item>
+                    <paper-item>9 px</paper-item>
                     <paper-item>10 px</paper-item>
                     <paper-item>12 px</paper-item>
                     <paper-item>14 px</paper-item>
@@ -201,19 +250,19 @@
 
         </div>
 
-        <div>
-            <span style="font-family: Barlow;">Barlow</span>
-            <span style="font-family: Raleway;">Raleway</span>
-            <span style="font-family: Poppins;">Poppins</span>
-        </div>
-
-        <div class="container">
+        <div class="scroll-area">
+        <div id="container" class="container">
             <div id=editor style="margin-bottom: 23px"></div>
             <div style="display: none" id="content">
                 <div id="page_0" class="page">
                     <p>This is editable text. You can focus it and start typing.</p>
                 </div>
             </div>
+        </div>
+        </div>
+
+        <div class="status-bar">
+            <paper-input type="number" label="zoom" value="{{zoomLevel}}"><div slot="suffix">&nbsp;%</div></paper-input>
         </div>
     </template>
 </dom-module>

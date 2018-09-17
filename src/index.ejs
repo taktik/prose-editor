@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>my first polymer typescript app</title>
+    <title>Prose Editor</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <!--
@@ -11,7 +11,15 @@
   When we hear the 'WebComponentsReady' event from the polyfill bundle we can
   insert our 'bundle.js'.
 -->
-
+<body>
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+</style>
 <script>
     (function() {
         document.addEventListener('WebComponentsReady', function componentsReady() {
