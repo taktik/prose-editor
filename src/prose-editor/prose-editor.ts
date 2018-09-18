@@ -88,9 +88,13 @@ export class ProseEditor extends Polymer.Element {
         toDOM(node: any) { return ["p", {style: "text-align:"+(node.attrs.align || 'inherit')}, 0] }
       }))
       .update("heading", Object.assign(schema.spec.nodes.get("heading"), {
-        attrs: { align: {default: 'inherit'} },
-        parseDOM: schema.spec.nodes.get("heading").parseDOM.map((r: ParseRule) => Object.assign(r, {getAttrs(value : HTMLElement) { return {level: parseInt(value.tagName.replace(/.+([0-9]+)/,'$1')), align: value.style && value.style.textAlign || 'inherit'}}})),
-        toDOM(node: any) { return ["h" + node.attrs.level, {style: "text-align: "+(node.attrs.align || 'inherit')}, 0] }
+        attrs: Object.assign(schema.spec.nodes.get("heading").attrs, { align: {default: 'inherit'} }),
+        parseDOM: schema.spec.nodes.get("heading").parseDOM.map((r: ParseRule) => Object.assign(r, {getAttrs(value : HTMLElement) {
+          return {level: parseInt(value.tagName.replace(/.+([0-9]+)/,'$1')), align: value.style && value.style.textAlign || 'inherit'}
+        }})),
+        toDOM(node: any) {
+          return ["h" + node.attrs.level, {style: "text-align: "+(node.attrs.align || 'inherit')}, 0]
+        }
       }))
       .addBefore("image", "tab", this.tabNodeSpec),
     marks: (schema.spec.marks as OrderedMap<MarkSpec>)
