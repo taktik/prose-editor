@@ -1,6 +1,7 @@
 import {ProseEditor} from './prose-editor'
 import './prose-editor'
 import './test-prose-editor.html'
+import * as assert from "assert";
 
 declare function fixture<T>(element: string):T
 

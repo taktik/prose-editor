@@ -16,14 +16,15 @@ import {customElement, property} from 'taktik-polymer-typescript';
 import {keymap} from 'prosemirror-keymap'
 import {EditorState, TextSelection, Transaction} from 'prosemirror-state'
 import {EditorView} from 'prosemirror-view'
-import {Schema, DOMParser, NodeSpec, Node, MarkType, MarkSpec, ParseRule} from 'prosemirror-model'
+import {Schema, DOMParser, NodeSpec, Node, MarkType, MarkSpec, ParseRule, Mark} from 'prosemirror-model'
 import {schema} from 'prosemirror-schema-basic'
-import {OrderedMap} from "orderedmap";
 import {baseKeymap, toggleMark, setBlockType} from "prosemirror-commands";
 import {Plugin} from "prosemirror-state"
 import {ReplaceStep} from "prosemirror-transform";
 import {history, undo, redo} from "prosemirror-history";
 import {underline} from "chalk";
+
+
 
 /**
  * MyApp main class.
@@ -80,16 +81,16 @@ export class ProseEditor extends Polymer.Element {
 
   @property({type: Object})
   editorSchema = new Schema({
-    nodes: (schema.spec.nodes as OrderedMap<NodeSpec>)
+    nodes: (schema.spec.nodes as any)
       .remove("doc").addToStart("page", this.pageNodeSpec).addToStart("doc", this.docNodeSpec)
-      .update("paragraph", Object.assign(schema.spec.nodes.get("paragraph"), {
+      .update("paragraph", Object.assign((schema.spec.nodes as any).get("paragraph"), {
         attrs: { align: {default: 'inherit'} },
         parseDOM: [{tag: "p", getAttrs(value : HTMLElement) { return {align: value.style && value.style.textAlign || 'inherit'}}}],
         toDOM(node: any) { return ["p", {style: "text-align:"+(node.attrs.align || 'inherit')}, 0] }
       }))
-      .update("heading", Object.assign(schema.spec.nodes.get("heading"), {
-        attrs: Object.assign(schema.spec.nodes.get("heading").attrs, { align: {default: 'inherit'} }),
-        parseDOM: schema.spec.nodes.get("heading").parseDOM.map((r: ParseRule) => Object.assign(r, {getAttrs(value : HTMLElement) {
+      .update("heading", Object.assign((schema.spec.nodes as any).get("heading"), {
+        attrs: Object.assign((schema.spec.nodes as any).get("heading").attrs, { align: {default: 'inherit'} }),
+        parseDOM: (schema.spec.nodes as any).get("heading").parseDOM.map((r: ParseRule) => Object.assign(r, {getAttrs(value : HTMLElement) {
           return {level: parseInt(value.tagName.replace(/.+([0-9]+)/,'$1')), align: value.style && value.style.textAlign || 'inherit'}
         }})),
         toDOM(node: any) {
@@ -97,18 +98,18 @@ export class ProseEditor extends Polymer.Element {
         }
       }))
       .addBefore("image", "tab", this.tabNodeSpec),
-    marks: (schema.spec.marks as OrderedMap<MarkSpec>)
+    marks: (schema.spec.marks as any)
       .addToEnd("underlined", {
         attrs: {
           underline: {default: 'underline'}
         },
         parseDOM: [{tag: "u"}, {
           style: 'text-decoration',
-          getAttrs(value) {
+          getAttrs(value:any) {
             return {underline: value}
           }
         }],
-        toDOM(mark) {
+        toDOM(mark:Mark) {
           let {underline} = mark.attrs
           return ['span', {style: `text-decoration: ${underline || 'underline'}`}, 0]
         }
@@ -119,12 +120,12 @@ export class ProseEditor extends Polymer.Element {
         parseDOM: [
           {
             style: 'color',
-            getAttrs(value) {
+            getAttrs(value:any) {
               return {color: value}
             }
           }
         ],
-        toDOM(mark) {
+        toDOM(mark:Mark) {
           let {color} = mark.attrs
           return ['span', {style: `color: ${color}`}, 0]
         }
@@ -135,12 +136,12 @@ export class ProseEditor extends Polymer.Element {
         parseDOM: [
           {
             style: 'background',
-            getAttrs(value) {
+            getAttrs(value: any) {
               return {color: value}
             }
           }
         ],
-        toDOM(mark) {
+        toDOM(mark:Mark) {
           let {color} = mark.attrs
           return ['span', {style: `background: ${color}`}, 0]
         }
@@ -151,12 +152,12 @@ export class ProseEditor extends Polymer.Element {
         parseDOM: [
           {
             style: 'font-family',
-            getAttrs(value) {
+            getAttrs(value:any) {
               return {font: value}
             }
           }
         ],
-        toDOM(mark) {
+        toDOM(mark:Mark) {
           let {font} = mark.attrs
           return ['span', {style: `font-family: ${font}`}, 0]
         }
@@ -167,12 +168,12 @@ export class ProseEditor extends Polymer.Element {
         parseDOM: [
           {
             style: 'font-size',
-            getAttrs(value) {
+            getAttrs(value:any) {
               return {size: value}
             }
           }
         ],
-        toDOM(mark) {
+        toDOM(mark:Mark) {
           let {size} = mark.attrs
           return ['span', {style: `font-size: ${size}`}, 0]
         }
