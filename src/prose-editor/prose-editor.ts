@@ -16,7 +16,7 @@ import {customElement, property} from 'taktik-polymer-typescript';
 import {keymap} from 'prosemirror-keymap'
 import {EditorState, TextSelection, Transaction} from 'prosemirror-state'
 import {EditorView} from 'prosemirror-view'
-import {Schema, DOMParser, NodeSpec, Node, MarkType, MarkSpec} from 'prosemirror-model'
+import {Schema, DOMParser, NodeSpec, Node, MarkType, MarkSpec, ParseRule} from 'prosemirror-model'
 import {schema} from 'prosemirror-schema-basic'
 import {OrderedMap} from "orderedmap";
 import {baseKeymap, toggleMark, setBlockType} from "prosemirror-commands";
@@ -80,7 +80,19 @@ export class ProseEditor extends Polymer.Element {
 
   @property({type: Object})
   editorSchema = new Schema({
-    nodes: (schema.spec.nodes as OrderedMap<NodeSpec>).remove("doc").addToStart("page", this.pageNodeSpec).addToStart("doc", this.docNodeSpec).addBefore("image", "tab", this.tabNodeSpec),
+    nodes: (schema.spec.nodes as OrderedMap<NodeSpec>)
+      .remove("doc").addToStart("page", this.pageNodeSpec).addToStart("doc", this.docNodeSpec)
+      .update("paragraph", Object.assign(schema.spec.nodes.get("paragraph"), {
+        attrs: { align: {default: 'inherit'} },
+        parseDOM: [{tag: "p", getAttrs(value : HTMLElement) { return {align: value.style && value.style.textAlign || 'inherit'}}}],
+        toDOM(node: any) { return ["p", {style: "text-align:"+(node.attrs.align || 'inherit')}, 0] }
+      }))
+      .update("heading", Object.assign(schema.spec.nodes.get("heading"), {
+        attrs: { align: {default: 'inherit'} },
+        parseDOM: schema.spec.nodes.get("heading").parseDOM.map((r: ParseRule) => Object.assign(r, {getAttrs(value : HTMLElement) { return {level: parseInt(value.tagName.replace(/.+([0-9]+)/,'$1')), align: value.style && value.style.textAlign || 'inherit'}}})),
+        toDOM(node: any) { return ["h" + node.attrs.level, {style: "text-align: "+(node.attrs.align || 'inherit')}, 0] }
+      }))
+      .addBefore("image", "tab", this.tabNodeSpec),
     marks: (schema.spec.marks as OrderedMap<MarkSpec>)
       .addToEnd("underlined", {
         attrs: {
@@ -193,10 +205,10 @@ export class ProseEditor extends Polymer.Element {
             const subNode = reverseSubNodes[0];
             const start = page.offset + 1 + subNode.offset
 
-            const tr = state.tr
+            let tr = state.tr
             const nextPage = state.doc.nodeAt(page.offset + page.node.nodeSize)
             if (!nextPage) {
-              tr.insert(page.offset + page.node.nodeSize, page.node.type.create({id: (page.node.attrs.id || 0) + 1}))
+              tr = tr.insert(page.offset + page.node.nodeSize, page.node.type.create({id: (page.node.attrs.id || 0) + 1}))
             }
             tr.insert(page.offset + page.node.nodeSize + 1, subNode.node).delete(start, start + subNode.node.nodeSize)
 
@@ -238,6 +250,16 @@ export class ProseEditor extends Polymer.Element {
                 proseEditor.set('currentHeading', 'Normal')
               }
               const marks = (node && node.marks || $cursor && $cursor.marks() || [])
+
+
+              let {from, to} = state.selection
+              let align : string | null = null
+              state.doc.nodesBetween(from, to, (node, pos) => {
+                if ((node.type === proseEditor.editorSchema.nodes.paragraph || node.type === proseEditor.editorSchema.nodes.heading) && node.attrs.align != align) {
+                  align = node.attrs.align
+                }
+              })
+              
               const fontMark = marks.find(m => m.type === proseEditor.editorSchema.marks.font)
               const sizeMark = marks.find(m => m.type === proseEditor.editorSchema.marks.size)
               const strongMark = marks.find(m => m.type === proseEditor.editorSchema.marks.strong)
@@ -253,6 +275,11 @@ export class ProseEditor extends Polymer.Element {
               proseEditor.set('isUnderlined', !!underlinedMark )
               proseEditor.set('currentColor', colorMark && colorMark.attrs.color || '#000000' )
               proseEditor.set('currentBgColor', bgcolorMark && bgcolorMark.attrs.color || '#000000' )
+
+              proseEditor.set('isLeft', align && align === 'left')
+              proseEditor.set('isCenter',  align && align === 'center' )
+              proseEditor.set('isRight',  align && align === 'right' )
+              proseEditor.set('isJustify',  align && align === 'justify' )
             }
           }
         }
@@ -443,7 +470,58 @@ export class ProseEditor extends Polymer.Element {
     e.preventDefault()
   }
 
+  doLeft(e: CustomEvent) {
+    e.stopPropagation()
+    e.preventDefault()
+    if (this.editorView) {
+      this.setAlignment("left")(this.editorView.state, this.editorView.dispatch)
+      this.editorView.focus()
+    }
+  }
 
+  doCenter(e: CustomEvent) {
+    e.stopPropagation()
+    e.preventDefault()
+    if (this.editorView) {
+      this.setAlignment("center")(this.editorView.state, this.editorView.dispatch)
+      this.editorView.focus()
+    }
+  }
+
+  doRight(e: CustomEvent) {
+    e.stopPropagation()
+    e.preventDefault()
+    if (this.editorView) {
+      this.setAlignment("right")(this.editorView.state, this.editorView.dispatch)
+      this.editorView.focus()
+    }
+  }
+
+  doJustify(e: CustomEvent) {
+    e.stopPropagation()
+    e.preventDefault()
+    if (this.editorView) {
+      this.setAlignment("justify")(this.editorView.state, this.editorView.dispatch)
+      this.editorView.focus()
+    }
+  }
+
+  setAlignment(align: String) {
+    const proseEditor = this
+    return function(state: EditorState, dispatch?: (tr: Transaction) => void)  {
+      let {from, to} = state.selection
+      let hasChange = false
+      let tr = state.tr
+      state.doc.nodesBetween(from, to, (node, pos) => {
+        if ((node.type === proseEditor.editorSchema.nodes.paragraph || node.type === proseEditor.editorSchema.nodes.heading) && node.attrs.align != align) {
+          tr = state.tr.setNodeMarkup(pos, node.type, Object.assign({}, node.attrs, {align : align}))
+          hasChange = true
+        }
+      })
+      if (hasChange && dispatch) dispatch(tr.scrollIntoView())
+      return true
+    }
+  }
   addMark(markType: MarkType, attrs?: { [key: string]: any }): (state: EditorState, dispatch?: (tr: Transaction) => void) => boolean {
     return function (state, dispatch) {
       let {empty, $cursor, ranges} = state.selection as TextSelection

@@ -251,10 +251,10 @@
             <color-picker icon="editor:format-color-text" color="[[currentColor]]" on-color-picker-selected="doColor"></color-picker>
             <color-picker icon="editor:format-color-fill" color="[[currentBgColor]]" on-color-picker-selected="doFillColor"></color-picker>
 
-            <paper-icon-button icon="editor:format-align-left"></paper-icon-button>
-            <paper-icon-button icon="editor:format-align-center"></paper-icon-button>
-            <paper-icon-button icon="editor:format-align-right"></paper-icon-button>
-            <paper-icon-button icon="editor:format-align-justify"></paper-icon-button>
+            <paper-icon-button icon="editor:format-align-left" active="[[isLeft]]" on-tap="doLeft"></paper-icon-button>
+            <paper-icon-button icon="editor:format-align-center" active="[[isCenter]]" on-tap="doCenter"></paper-icon-button>
+            <paper-icon-button icon="editor:format-align-right" active="[[isRight]]" on-tap="doRight"></paper-icon-button>
+            <paper-icon-button icon="editor:format-align-justify" active="[[isJustify]]" on-tap="doJustify"></paper-icon-button>
 
         </div>
 
