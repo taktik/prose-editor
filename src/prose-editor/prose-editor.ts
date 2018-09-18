@@ -259,7 +259,7 @@ export class ProseEditor extends Polymer.Element {
                   align = node.attrs.align
                 }
               })
-              
+
               const fontMark = marks.find(m => m.type === proseEditor.editorSchema.marks.font)
               const sizeMark = marks.find(m => m.type === proseEditor.editorSchema.marks.size)
               const strongMark = marks.find(m => m.type === proseEditor.editorSchema.marks.strong)
